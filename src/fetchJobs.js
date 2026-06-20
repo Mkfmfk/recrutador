@@ -11,6 +11,11 @@ const { fetchHimalayasJobs, fetchHimalayasSearch } = require('./providers/himala
 const { fetchJobicyJobs } = require('./providers/jobicy');
 const { fetchWeWorkRemotelyJobs } = require('./providers/weworkremotely');
 const { fetchFindworkJobs } = require('./providers/findwork');
+const { fetchRemotiveJobs } = require('./providers/remotive');
+const { fetchWorkingNomadsJobs } = require('./providers/workingnomads');
+const { fetchGreenhouseJobs } = require('./providers/greenhouse');
+const { fetchLeverJobs } = require('./providers/lever');
+const { fetchAshbyJobs } = require('./providers/ashby');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
@@ -273,6 +278,70 @@ async function fetchAllJobs() {
   } catch (err) {
     if (!err.message.includes('API key')) console.error(`  ❌ Findwork:`, err.message);
   }
+
+  // ═══════════════════════════════════════════
+  // 11. REMOTIVE (remote, global, sem key)
+  // ═══════════════════════════════════════════
+  try {
+    let allJobs = [];
+    const searches = ['', 'software', 'data', 'devops', 'frontend', 'backend', 'machine learning', 'product', 'design'];
+    for (const search of searches) {
+      try {
+        const jobs = await fetchRemotiveJobs(search);
+        allJobs = allJobs.concat(jobs);
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 400));
+    }
+    const unique = dedupe(allJobs);
+    console.log(`  ✅ Remotive: ${unique.length} vagas únicas`);
+    const stats = await upsertJobs(unique);
+    results.remotive = { fetched: unique.length, ...stats };
+  } catch (err) { console.error(`  ❌ Remotive:`, err.message); }
+
+  // ═══════════════════════════════════════════
+  // 12. WORKING NOMADS (remote, global, sem key)
+  // ═══════════════════════════════════════════
+  try {
+    const jobs = await fetchWorkingNomadsJobs();
+    if (jobs.length > 0) {
+      console.log(`  ✅ Working Nomads: ${jobs.length} vagas`);
+      const stats = await upsertJobs(jobs);
+      results.workingnomads = { fetched: jobs.length, ...stats };
+    }
+  } catch (err) { console.error(`  ❌ Working Nomads:`, err.message); }
+
+  // ═══════════════════════════════════════════
+  // 13. GREENHOUSE (ATS, vagas direto das empresas)
+  // ═══════════════════════════════════════════
+  try {
+    const jobs = await fetchGreenhouseJobs();
+    const unique = dedupe(jobs);
+    console.log(`  ✅ Greenhouse: ${unique.length} vagas únicas`);
+    const stats = await upsertJobs(unique);
+    results.greenhouse = { fetched: unique.length, ...stats };
+  } catch (err) { console.error(`  ❌ Greenhouse:`, err.message); }
+
+  // ═══════════════════════════════════════════
+  // 14. LEVER (ATS, vagas direto das empresas)
+  // ═══════════════════════════════════════════
+  try {
+    const jobs = await fetchLeverJobs();
+    const unique = dedupe(jobs);
+    console.log(`  ✅ Lever: ${unique.length} vagas únicas`);
+    const stats = await upsertJobs(unique);
+    results.lever = { fetched: unique.length, ...stats };
+  } catch (err) { console.error(`  ❌ Lever:`, err.message); }
+
+  // ═══════════════════════════════════════════
+  // 15. ASHBY (ATS, vagas direto das empresas)
+  // ═══════════════════════════════════════════
+  try {
+    const jobs = await fetchAshbyJobs();
+    const unique = dedupe(jobs);
+    console.log(`  ✅ Ashby: ${unique.length} vagas únicas`);
+    const stats = await upsertJobs(unique);
+    results.ashby = { fetched: unique.length, ...stats };
+  } catch (err) { console.error(`  ❌ Ashby:`, err.message); }
 
   // ═══════════════════════════════════════════
   // RESUMO FINAL

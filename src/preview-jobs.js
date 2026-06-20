@@ -74,6 +74,46 @@ async function fetchTheMuse() {
   return allJobs;
 }
 
+async function fetchRemotive() {
+  console.log('🟢 Buscando Remotive...');
+  const res = await axios.get('https://remotive.com/api/remote-jobs', {
+    headers: { 'User-Agent': 'Recrutador/1.0' }
+  });
+  const jobs = (res.data && res.data.jobs) || [];
+  return jobs.map(job => ({
+    source: 'remotive',
+    title: job.title || '',
+    company: job.company_name || '',
+    location: job.candidate_required_location || 'Remote',
+    type: 'remote',
+    salary: job.salary || 'Não informado',
+    tags: Array.isArray(job.tags) ? job.tags : [],
+    url: job.url || '',
+    date: job.publication_date || ''
+  }));
+}
+
+async function fetchWorkingNomads() {
+  console.log('🧳 Buscando Working Nomads...');
+  const res = await axios.get('https://www.workingnomads.com/api/exposed_jobs/', {
+    headers: { 'User-Agent': 'Recrutador/1.0' }
+  });
+  const jobs = Array.isArray(res.data) ? res.data : [];
+  return jobs.map(job => ({
+    source: 'workingnomads',
+    title: job.title || '',
+    company: job.company_name || '',
+    location: job.location || 'Remote',
+    type: 'remote',
+    salary: 'Não informado',
+    tags: typeof job.tags === 'string'
+      ? job.tags.split(',').map(t => t.trim()).filter(Boolean)
+      : (Array.isArray(job.tags) ? job.tags : []),
+    url: job.url || '',
+    date: job.pub_date || ''
+  }));
+}
+
 async function main() {
   console.log('');
   console.log('╔══════════════════════════════════════════════╗');
@@ -105,6 +145,22 @@ async function main() {
     allJobs.push(...muse);
   } catch (err) {
     console.error(`  ❌ The Muse: ${err.message}`);
+  }
+
+  try {
+    const remotive = await fetchRemotive();
+    console.log(`  ✅ Remotive: ${remotive.length} vagas`);
+    allJobs.push(...remotive);
+  } catch (err) {
+    console.error(`  ❌ Remotive: ${err.message}`);
+  }
+
+  try {
+    const workingnomads = await fetchWorkingNomads();
+    console.log(`  ✅ Working Nomads: ${workingnomads.length} vagas`);
+    allJobs.push(...workingnomads);
+  } catch (err) {
+    console.error(`  ❌ Working Nomads: ${err.message}`);
   }
 
   // Salva resultado em JSON
